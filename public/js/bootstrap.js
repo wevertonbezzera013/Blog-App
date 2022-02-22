@@ -28,6 +28,7 @@
         return Object.freeze(n);
     }
 
+
     const Popper__namespace = /*#__PURE__*/ _interopNamespace(Popper);
 
     /**
