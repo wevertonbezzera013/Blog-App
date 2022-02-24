@@ -10,7 +10,8 @@ const { allowInsecurePrototypeAccess } = require('@handlebars/allow-prototype-ac
 const Handlebars = require('handlebars');
 //Mongoose
 const mongoose = require('mongoose');
-// Other
+const db = require('./config/db')
+    // Other
 const App = express();
 const admin = require('./routs/admin');
 const path = require('path');
@@ -50,6 +51,7 @@ App.use((req, res, next) => {
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
     res.locals.error = req.flash('error');
+    res.locals.user = req.user || null;
     next();
 })
 
@@ -67,7 +69,7 @@ App.set("views", "./views");
 
 /* Mongoose */
 mongoose.Promise = global.Promise;
-mongoose.connect('mongodb://localhost/blogapp').then(() => {
+mongoose.connect(db.mongoURI).then(() => {
     console.log("Conectado ao mongo")
 }).catch((err) => {
     console.log("Falhou " + err)
@@ -148,7 +150,7 @@ App.use('/usuarios', usuarios)
 App.use('/admin', admin);
 
 // OTHER
-const port = 8081
+const port = process.env.PORT || 8081
 App.listen(port, () => {
     console.log('listening on port: ' + port);
 });
