@@ -2,6 +2,12 @@
 
 // Express
 const express = require('express');
+App.get('/app/:id', doEverythingInOneHugeFunctionWithAsyncBranches);
+
+function checkUserAuth(req, res, next) {
+    if (req.session.user) return next();
+    return next(new NotAuthorizedError());
+}
 // Body Parser
 const bodyParser = require('body-parser');
 // Handlebars
