@@ -14,10 +14,20 @@ const mongoose = require('mongoose');
 const App = express();
 const admin = require('./routs/admin');
 const path = require('path');
-// express-session
+require('./models/Postagens')
+const Postagem = mongoose.model('postagens')
+    // express-session
 const session = require('express-session');
 // flash
 const flash = require('connect-flash');
+
+require('./models/Categoria')
+const Categoria = mongoose.model('categorias')
+
+const usuarios = require('./routs/usuario')
+
+const passport = require('passport')
+require('./config/auth')(passport)
 
 
 // CONFIG
@@ -28,12 +38,18 @@ App.use(session({
     resave: true,
     saveUninitialized: true
 }));
+
+App.use(passport.initialize());
+App.use(passport.session());
+
+
 App.use(flash());
 
 /* Middleware */
 App.use((req, res, next) => {
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
+    res.locals.error = req.flash('error');
     next();
 })
 
@@ -67,13 +83,67 @@ App.use(express.static(path.join(__dirname, "/public")))
 }) */
 
 // ROUTS
+App.get('/postagem/:slug', (req, res) => {
+    Postagem.findOne({ slug: req.params.slug }).then(postagem => {
+        if (postagem) {
+            res.render('postagem/index', { postagem: postagem });
+        } else {
+            req.flash('error_msg', 'Houve um erro!')
+            res.redirect('/')
+        }
+    }).catch(err => {
+        req.flash('error_msg', 'Houve um erro!')
+        res.redirect('/')
+    })
+})
+
 App.get('/', (req, res) => {
-    res.send('Rota principal');
+    Postagem.find().populate('categoria').sort({ data: 'desc' }).then(postagens => {
+        res.render('index', { postagens: postagens });
+    }).catch(err => {
+        req.flash('error_msg', 'Houve um erro!')
+        res.redirect('/404')
+    })
+
 });
 
-App.get('/posts', (req, res) => {
-    res.send('Rota de Posts');
-});
+App.get('/404', (req, res) => {
+    res.send("Erro 404");
+})
+
+App.get('/categorias', (req, res) => {
+    Categoria.find().then((categorias) => {
+        res.render('categorias/index', { categorias: categorias })
+
+    }).catch(err => {
+        req.flash('error_msg', 'Houve um erro!')
+        res.redirect('/')
+    })
+})
+
+App.get('/categorias/:slug', (req, res) => {
+    Categoria.findOne({ slug: req.params.slug }).lean().then((categoria) => {
+        if (categoria) {
+            Postagem.find({ categoria: categoria._id }).then((postagens) => {
+                res.render('categorias/postagens', { postagens: postagens, categoria: categoria })
+            }).catch((err) => {
+                console.log(err)
+                req.flash('error_msg', 'Houve um erro!')
+                res.redirect('/')
+            })
+        } else {
+            req.flash('error_msg', 'Essa Categoria não existe!')
+            req.redirect('/')
+        }
+
+    }).catch((err) => {
+        console.log(err)
+        req.flash('error_msg', 'Houve um erro!')
+        res.redirect('/')
+    })
+})
+
+App.use('/usuarios', usuarios)
 
 App.use('/admin', admin);
 
